@@ -11,7 +11,7 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
 }
 
-const IMAGE_OFFSET = 140; // yPercent — distance images travel
+const IMAGE_OFFSET = 140;
 
 export default function CardStack() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -20,12 +20,12 @@ export default function CardStack() {
   const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const overlayRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // First-card sub-element refs (for intro animation on page load)
+  // First-card intro element refs
+  const introBigTextRef = useRef<HTMLHeadingElement | null>(null);
   const introTitleRef = useRef<HTMLDivElement | null>(null);
   const introSubtitleRef = useRef<HTMLDivElement | null>(null);
-  const introQuoteRef = useRef<HTMLDivElement | null>(null);
-  const introBigTextRef = useRef<HTMLHeadingElement | null>(null);
   const introImageRef = useRef<HTMLDivElement | null>(null);
+  const introQuoteRef = useRef<HTMLDivElement | null>(null);
 
   useGSAP(
     () => {
@@ -37,7 +37,7 @@ export default function CardStack() {
       const overlays = overlayRefs.current.filter(Boolean) as HTMLDivElement[];
       if (bgs.length === 0) return;
 
-      // ─── Initial states (defensive — overrides inline styles cleanly) ───
+      // ─── Stable initial states (matches inline styles, defensive) ───
       bgs.forEach((el, i) => gsap.set(el, { opacity: i === 0 ? 1 : 0 }));
       bigTexts.forEach((el, i) => gsap.set(el, { opacity: i === 0 ? 1 : 0 }));
       overlays.forEach((el, i) => gsap.set(el, { opacity: i === 0 ? 1 : 0 }));
@@ -45,19 +45,15 @@ export default function CardStack() {
         gsap.set(el, { yPercent: i === 0 ? 0 : -IMAGE_OFFSET })
       );
 
-      // ─── INTRO ANIMATION — runs once on page load ───
+      // ─── INTRO ANIMATION (one-time, on mount) ───
+      // Intro elements already start hidden via inline styles (matches these states).
+      // GSAP animates them to visible.
       const introTl = gsap.timeline({
         defaults: { ease: 'power3.out' },
+        delay: 0.1,
       });
 
-      // Start everything hidden
       introTl
-        .set(introBigTextRef.current, { scale: 0.7, opacity: 0 })
-        .set(introTitleRef.current, { x: -50, opacity: 0 })
-        .set(introSubtitleRef.current, { x: 50, opacity: 0 })
-        .set(introImageRef.current, { y: 60, opacity: 0 })
-        .set(introQuoteRef.current, { y: 30, opacity: 0 })
-        // Then stagger them in
         .to(introBigTextRef.current, {
           scale: 1,
           opacity: 1,
@@ -84,7 +80,7 @@ export default function CardStack() {
           '-=0.6'
         );
 
-      // ─── Single master timeline for scroll-driven transitions ───
+      // ─── Master scroll-driven timeline ───
       const masterTl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
@@ -100,31 +96,16 @@ export default function CardStack() {
       for (let i = 1; i < cards.length; i++) {
         const start = i - 1;
 
-        // Background crossfade
-        masterTl.to(
-          bgs[i],
-          { opacity: 1, ease: 'none', duration: 1 },
-          start
-        );
-        masterTl.to(
-          bgs[i - 1],
-          { opacity: 0, ease: 'none', duration: 1 },
-          start
-        );
+        masterTl.to(bgs[i], { opacity: 1, ease: 'none', duration: 1 }, start);
+        masterTl.to(bgs[i - 1], { opacity: 0, ease: 'none', duration: 1 }, start);
 
-        // Big BG text crossfade
-        masterTl.to(
-          bigTexts[i],
-          { opacity: 1, ease: 'none', duration: 1 },
-          start
-        );
+        masterTl.to(bigTexts[i], { opacity: 1, ease: 'none', duration: 1 }, start);
         masterTl.to(
           bigTexts[i - 1],
           { opacity: 0, ease: 'none', duration: 1 },
           start
         );
 
-        // Overlay text crossfade
         masterTl.to(
           overlays[i - 1],
           { opacity: 0, ease: 'none', duration: 0.5 },
@@ -136,7 +117,6 @@ export default function CardStack() {
           start + 0.5
         );
 
-        // Images — simultaneous linear
         masterTl.to(
           images[i - 1],
           { yPercent: IMAGE_OFFSET, ease: 'none', duration: 1 },
@@ -159,7 +139,7 @@ export default function CardStack() {
       className="relative w-full"
     >
       <div className="card-stack-sticky sticky top-0 h-screen w-full overflow-hidden">
-        {/* Layer 1 (z-1+): Background gradients */}
+        {/* Backgrounds */}
         {cards.map((card, i) => (
           <div
             key={`bg-${card.id}`}
@@ -176,7 +156,7 @@ export default function CardStack() {
           />
         ))}
 
-        {/* Layer 2 (z-30): Big background text */}
+        {/* Big background text */}
         <div className="pointer-events-none absolute inset-0 z-30">
           {cards.map((card, i) => (
             <div
@@ -194,7 +174,14 @@ export default function CardStack() {
               <h1
                 ref={i === 0 ? introBigTextRef : undefined}
                 className="font-anton select-none text-[35vw] font-extrabold leading-none text-white/10 md:text-[28vw]"
-                style={{ letterSpacing: '0.02em' }}
+                style={{
+                  letterSpacing: '0.02em',
+                  // Card 0's big text starts scaled-down + hidden for intro
+                  ...(i === 0 && {
+                    opacity: 0,
+                    transform: 'scale(0.7)',
+                  }),
+                }}
               >
                 {card.bigText}
               </h1>
@@ -202,7 +189,7 @@ export default function CardStack() {
           ))}
         </div>
 
-        {/* Layer 3 (z-40): Images */}
+        {/* Images */}
         <div className="pointer-events-none absolute inset-0 z-40">
           {cards.map((card, i) => (
             <div
@@ -220,6 +207,11 @@ export default function CardStack() {
               <div
                 ref={i === 0 ? introImageRef : undefined}
                 className="relative h-[75vh] w-[90vw] max-w-[600px] sm:h-[85vh] sm:w-[80vw] md:max-w-3xl lg:max-w-4xl"
+                style={
+                  i === 0
+                    ? { opacity: 0, transform: 'translateY(60px)' }
+                    : undefined
+                }
               >
                 <Image
                   src={card.image}
@@ -234,7 +226,7 @@ export default function CardStack() {
           ))}
         </div>
 
-        {/* Layer 4 (z-70): Text overlays */}
+        {/* Text overlays */}
         <div className="pointer-events-none absolute inset-0 z-[70]">
           {cards.map((card, i) => (
             <div
@@ -248,10 +240,14 @@ export default function CardStack() {
                 willChange: 'opacity',
               }}
             >
-              {/* Top Left Title */}
               <div
                 ref={i === 0 ? introTitleRef : undefined}
                 className="absolute left-5 top-20 max-w-[80%] sm:left-8 sm:top-24 sm:max-w-md md:left-16 md:top-32"
+                style={
+                  i === 0
+                    ? { opacity: 0, transform: 'translateX(-50px)' }
+                    : undefined
+                }
               >
                 <p className="mb-1 text-[10px] uppercase tracking-[0.3em] text-white/60 sm:mb-2 sm:text-xs">
                   Anyone. Anywhere.
@@ -261,20 +257,28 @@ export default function CardStack() {
                 </h2>
               </div>
 
-              {/* Top Right Subtitle */}
               <div
                 ref={i === 0 ? introSubtitleRef : undefined}
                 className="absolute right-5 top-20 hidden max-w-xs text-right sm:right-8 sm:top-24 md:right-16 md:top-32 md:block"
+                style={
+                  i === 0
+                    ? { opacity: 0, transform: 'translateX(50px)' }
+                    : undefined
+                }
               >
                 <p className="text-sm leading-relaxed text-white/80">
                   {card.subtitle}
                 </p>
               </div>
 
-              {/* Bottom Quote */}
               <div
                 ref={i === 0 ? introQuoteRef : undefined}
                 className="absolute bottom-6 left-1/2 w-full max-w-2xl -translate-x-1/2 px-5 text-center sm:bottom-12 sm:px-8 md:bottom-16"
+                style={
+                  i === 0
+                    ? { opacity: 0, transform: 'translate(-50%, 30px)' }
+                    : undefined
+                }
               >
                 <p
                   className="font-serif text-sm italic leading-relaxed text-white sm:text-base md:text-xl"
