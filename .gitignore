@@ -1,0 +1,36 @@
+# Documentation files (kept local, not pushed to GitHub)
+*.md
+*.pdf
+
+# Source assets (kept local — too large for git)
+source-images/
+source-videos/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Node — handled by app/.gitignore too
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Memory files (if accidentally added)
+memory/
