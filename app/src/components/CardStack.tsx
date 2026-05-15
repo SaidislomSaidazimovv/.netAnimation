@@ -15,6 +15,7 @@ const IMAGE_OFFSET = 140; // yPercent — distance images travel
 
 export default function CardStack() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const fadeWrapperRef = useRef<HTMLDivElement>(null);
   const bgRefs = useRef<(HTMLDivElement | null)[]>([]);
   const bigTextRefs = useRef<(HTMLDivElement | null)[]>([]);
   const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -37,6 +38,93 @@ export default function CardStack() {
       images.forEach((el, i) =>
         gsap.set(el, { yPercent: i === 0 ? 0 : -IMAGE_OFFSET })
       );
+
+      // ─── Big text letters: initial state ───
+      // First card letters: start at FINAL position (yPercent: 0, opacity: 1).
+      // The intro animation will temporarily reset them to (100, 0) via
+      // fromTo, then stagger them back to (0, 1). This way the master
+      // timeline correctly captures (0, 1) as the "from" state for TEEN's
+      // exit animation.
+      //
+      // Other cards: start hidden below; they'll cascade in via the master
+      // timeline when their scroll transition fires.
+      const lettersByCard = bigTexts.map((bigTextEl) =>
+        Array.from(bigTextEl.querySelectorAll('.big-text-char'))
+      );
+      lettersByCard.forEach((letters, idx) => {
+        if (idx === 0) {
+          gsap.set(letters, { yPercent: 0, opacity: 1 });
+        } else {
+          gsap.set(letters, { yPercent: 100, opacity: 0 });
+        }
+      });
+
+      // ─── Intro fade-in (single wrapper, no conflict with master timeline) ───
+      // Hides everything until GSAP set() has run, then smoothly fades in.
+      gsap.to(fadeWrapperRef.current, {
+        opacity: 1,
+        duration: 1.2,
+        ease: 'power2.out',
+        delay: 0.1,
+      });
+
+      // ─── Intro stagger on FIRST card's sub-elements only ───
+      // Sub-elements are NOT touched by the master timeline (which only
+      // animates the wrappers: bgs, bigTexts, overlays, images).
+      // Safe to animate inner elements without conflict.
+      const firstOverlay = overlays[0];
+      const firstBigText = bigTexts[0];
+      const firstImage = images[0];
+
+      if (firstOverlay && firstBigText && firstImage) {
+        const titleEl = firstOverlay.querySelector('.intro-title-block');
+        const subtitleEl = firstOverlay.querySelector('.intro-subtitle-block');
+        const quoteEl = firstOverlay.querySelector('.intro-quote-block');
+        const imageInner = firstImage.querySelector('.intro-image-inner');
+        const firstCardLetters = lettersByCard[0];
+
+        // Set initial states (hidden + offset positions)
+        gsap.set([titleEl, subtitleEl, quoteEl, imageInner], { opacity: 0 });
+        gsap.set(titleEl, { x: -40 });
+        gsap.set(subtitleEl, { x: 40 });
+        gsap.set(quoteEl, { y: 30 });
+        gsap.set(imageInner, { y: 50 });
+
+        // Staggered intro timeline
+        // onComplete -> ScrollTrigger.refresh() forces the master timeline
+        // to RE-CAPTURE its tweens' from-states from the current DOM. This
+        // is what guarantees TEEN's exit tween picks up (yPercent: 0,
+        // opacity: 1) as its "from" — preventing the disappear-on-scroll bug.
+        const introTl = gsap.timeline({
+          delay: 0.3,
+          defaults: { ease: 'power3.out' },
+          onComplete: () => ScrollTrigger.refresh(),
+        });
+
+        introTl
+          // Big text letters: reset to below, then stagger up.
+          // `immediateRender: false` is CRITICAL — without it, fromTo would
+          // jump TEEN letters to (100, 0) the moment the timeline is created,
+          // which causes the master timeline to record (100, 0) as TEEN's
+          // "from" state for its exit animation, making TEEN disappear
+          // wrongly on scroll. With immediateRender false, the from state
+          // is applied only when the intro tween actually starts running.
+          .fromTo(
+            firstCardLetters,
+            { yPercent: 100, opacity: 0 },
+            {
+              yPercent: 0,
+              opacity: 1,
+              duration: 0.8,
+              stagger: 0.06,
+              immediateRender: false,
+            }
+          )
+          .to(imageInner, { y: 0, opacity: 1, duration: 1.2 }, '-=0.8')
+          .to(titleEl, { x: 0, opacity: 1, duration: 0.9 }, '-=0.9')
+          .to(subtitleEl, { x: 0, opacity: 1, duration: 0.9 }, '-=0.9')
+          .to(quoteEl, { y: 0, opacity: 1, duration: 0.8 }, '-=0.6');
+      }
 
       // ─── Single master timeline ───
       // Each transition occupies one "time unit" (1 second of timeline = 1 viewport of scroll)
@@ -67,7 +155,7 @@ export default function CardStack() {
           start
         );
 
-        // Big background text crossfade
+        // Big background text wrapper crossfade
         masterTl.to(
           bigTexts[i],
           { opacity: 1, ease: 'none', duration: 1 },
@@ -77,6 +165,33 @@ export default function CardStack() {
           bigTexts[i - 1],
           { opacity: 0, ease: 'none', duration: 1 },
           start
+        );
+
+        // Big text letters — uniform exit, staggered entry.
+        // The intro's onComplete -> ScrollTrigger.refresh() ensures the
+        // master timeline captures TEEN's correct post-intro state.
+        masterTl.to(
+          lettersByCard[i - 1],
+          {
+            yPercent: -100,
+            opacity: 0,
+            duration: 0.6,
+            ease: 'power2.in',
+          },
+          start
+        );
+        // New letters cascade in from below (entry stagger preserved —
+        // this is the "wow" moment of each transition).
+        masterTl.to(
+          lettersByCard[i],
+          {
+            yPercent: 0,
+            opacity: 1,
+            duration: 0.6,
+            stagger: 0.05,
+            ease: 'power2.out',
+          },
+          start + 0.3
         );
 
         // Overlay text crossfade (slightly faster transition window)
@@ -116,6 +231,12 @@ export default function CardStack() {
       className="relative w-full"
     >
       <div className="card-stack-sticky sticky top-0 h-screen w-full overflow-hidden">
+        {/* Intro fade wrapper — hides FOUC + fades all content in once on mount */}
+        <div
+          ref={fadeWrapperRef}
+          className="absolute inset-0 h-full w-full"
+          style={{ opacity: 0, willChange: 'opacity' }}
+        >
         {/* Layer 1 (z-1+): Background gradients */}
         {cards.map((card, i) => (
           <div
@@ -148,7 +269,15 @@ export default function CardStack() {
                 className="font-anton select-none text-[35vw] font-extrabold leading-none text-white/10 md:text-[28vw]"
                 style={{ letterSpacing: '0.02em' }}
               >
-                {card.bigText}
+                {card.bigText.split('').map((char, idx) => (
+                  <span
+                    key={idx}
+                    className="big-text-char inline-block"
+                    style={{ willChange: 'transform, opacity' }}
+                  >
+                    {char === ' ' ? ' ' : char}
+                  </span>
+                ))}
               </h1>
             </div>
           ))}
@@ -165,7 +294,7 @@ export default function CardStack() {
               className="absolute inset-0 flex h-full w-full items-end justify-center pb-20 sm:items-center sm:pb-0"
               style={{ willChange: 'transform' }}
             >
-              <div className="relative h-[75vh] w-[90vw] max-w-[600px] sm:h-[85vh] sm:w-[80vw] md:max-w-3xl lg:max-w-4xl">
+              <div className="intro-image-inner relative h-[75vh] w-[90vw] max-w-[600px] sm:h-[85vh] sm:w-[80vw] md:max-w-3xl lg:max-w-4xl">
                 <Image
                   src={card.image}
                   alt={card.alt}
@@ -191,7 +320,7 @@ export default function CardStack() {
               style={{ willChange: 'opacity' }}
             >
               {/* Top Left Title */}
-              <div className="absolute left-5 top-20 max-w-[80%] sm:left-8 sm:top-24 sm:max-w-md md:left-16 md:top-32">
+              <div className="intro-title-block absolute left-5 top-20 max-w-[80%] sm:left-8 sm:top-24 sm:max-w-md md:left-16 md:top-32">
                 <p className="mb-1 text-[10px] uppercase tracking-[0.3em] text-white/60 sm:mb-2 sm:text-xs">
                   Anyone. Anywhere.
                 </p>
@@ -201,14 +330,14 @@ export default function CardStack() {
               </div>
 
               {/* Top Right Subtitle */}
-              <div className="absolute right-5 top-20 hidden max-w-xs text-right sm:right-8 sm:top-24 md:right-16 md:top-32 md:block">
+              <div className="intro-subtitle-block absolute right-5 top-20 hidden max-w-xs text-right sm:right-8 sm:top-24 md:right-16 md:top-32 md:block">
                 <p className="text-sm leading-relaxed text-white/80">
                   {card.subtitle}
                 </p>
               </div>
 
               {/* Bottom Quote */}
-              <div className="absolute bottom-6 left-1/2 w-full max-w-2xl -translate-x-1/2 px-5 text-center sm:bottom-12 sm:px-8 md:bottom-16">
+              <div className="intro-quote-block absolute bottom-6 left-1/2 w-full max-w-2xl -translate-x-1/2 px-5 text-center sm:bottom-12 sm:px-8 md:bottom-16">
                 <p
                   className="font-serif text-sm italic leading-relaxed text-white sm:text-base md:text-xl"
                   style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}
@@ -218,6 +347,8 @@ export default function CardStack() {
               </div>
             </div>
           ))}
+        </div>
+        {/* end intro fade wrapper */}
         </div>
       </div>
     </div>
