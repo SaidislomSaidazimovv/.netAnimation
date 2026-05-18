@@ -41,7 +41,7 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${fraunces.variable} ${anton.variable} antialiased`}
     >
-      <body className="bg-black text-white">{children}</body>
+      <body className="bg-[#faf8f5] text-[#1a1a1a]">{children}</body>
     </html>
   );
 }

@@ -48,7 +48,7 @@ export default function TopNav() {
           willChange: 'transform, opacity',
         }}
       >
-        <span className="font-serif text-sm font-medium tracking-wide text-white sm:text-base md:text-lg">
+        <span className="font-serif text-sm font-medium tracking-wide text-[#1a1a1a] sm:text-base md:text-lg">
           Butterfly Challenge
         </span>
       </div>
@@ -57,7 +57,7 @@ export default function TopNav() {
         href="https://butterflychallenge.net"
         target="_blank"
         rel="noopener noreferrer"
-        className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-white backdrop-blur-sm transition hover:bg-white/10 sm:px-5 sm:text-xs"
+        className="rounded-full border border-black/15 bg-black/[0.04] px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-[#1a1a1a] backdrop-blur-sm transition hover:bg-black/[0.08] sm:px-5 sm:text-xs"
         style={{
           opacity: 0,
           transform: 'translateX(30px)',

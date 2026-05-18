@@ -36,7 +36,7 @@ export default function ProgressIndicator() {
               className="h-2 w-2 rounded-full transition-all duration-500"
               style={{
                 backgroundColor:
-                  i === activeIndex ? card.accent : 'rgba(255,255,255,0.3)',
+                  i === activeIndex ? card.accent : 'rgba(0,0,0,0.2)',
                 transform: i === activeIndex ? 'scale(1.5)' : 'scale(1)',
               }}
             />

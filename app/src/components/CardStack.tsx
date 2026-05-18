@@ -227,6 +227,7 @@ export default function CardStack() {
   return (
     <div
       ref={containerRef}
+      data-section="cards"
       style={{ height: `${cards.length * 100}vh` }}
       className="relative w-full"
     >
@@ -266,7 +267,7 @@ export default function CardStack() {
               aria-hidden="true"
             >
               <h1
-                className="font-anton select-none text-[35vw] font-extrabold leading-none text-white/10 md:text-[28vw]"
+                className="font-anton select-none text-[35vw] font-extrabold leading-none text-black/[0.06] md:text-[28vw]"
                 style={{ letterSpacing: '0.02em' }}
               >
                 {card.bigText.split('').map((char, idx) => (
@@ -321,17 +322,17 @@ export default function CardStack() {
             >
               {/* Top Left Title */}
               <div className="intro-title-block absolute left-5 top-20 max-w-[80%] sm:left-8 sm:top-24 sm:max-w-md md:left-16 md:top-32">
-                <p className="mb-1 text-[10px] uppercase tracking-[0.3em] text-white/60 sm:mb-2 sm:text-xs">
+                <p className="mb-1 text-[10px] uppercase tracking-[0.3em] text-black/50 sm:mb-2 sm:text-xs">
                   Anyone. Anywhere.
                 </p>
-                <h2 className="font-serif text-2xl font-light italic leading-tight text-white sm:text-3xl md:text-5xl">
+                <h2 className="font-serif text-2xl font-light italic leading-tight text-[#1a1a1a] sm:text-3xl md:text-5xl">
                   {card.title}
                 </h2>
               </div>
 
               {/* Top Right Subtitle */}
               <div className="intro-subtitle-block absolute right-5 top-20 hidden max-w-xs text-right sm:right-8 sm:top-24 md:right-16 md:top-32 md:block">
-                <p className="text-sm leading-relaxed text-white/80">
+                <p className="text-sm leading-relaxed text-black/60">
                   {card.subtitle}
                 </p>
               </div>
@@ -339,8 +340,8 @@ export default function CardStack() {
               {/* Bottom Quote */}
               <div className="intro-quote-block absolute bottom-6 left-1/2 w-full max-w-2xl -translate-x-1/2 px-5 text-center sm:bottom-12 sm:px-8 md:bottom-16">
                 <p
-                  className="font-serif text-sm italic leading-relaxed text-white sm:text-base md:text-xl"
-                  style={{ textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}
+                  className="font-serif text-sm italic leading-relaxed text-[#1a1a1a] sm:text-base md:text-xl"
+                  style={{ textShadow: '0 1px 3px rgba(255,255,255,0.6)' }}
                 >
                   &ldquo;{card.quote}&rdquo;
                 </p>
